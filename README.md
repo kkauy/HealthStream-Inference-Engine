@@ -1,7 +1,6 @@
 # HealthStream-Inference-Engine
 A distributed hybrid Java/Python engine for real-time medical data orchestration and AI inference. Bridging large-scale infrastructure with clinical research.
 
-# HealthStream-Inference-Engine
 
 [![Engine: Java](https://img.shields.io/badge/Orchestrator-Java-orange)](https://www.java.com/)
 [![ML: Python](https://img.shields.io/badge/Inference-Python-blue)](https://www.python.org/)
