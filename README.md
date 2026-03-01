@@ -35,7 +35,7 @@ High-performance backend systems require the concurrency of **Java**, while mode
 ## 🚦 Getting Started
 ```bash
 # Clone the repository
-git clone [https://github.com/your-username/HealthStream-Inference-Engine.git](https://github.com/your-username/HealthStream-Inference-Engine.git)
+git clone [[https://github.com/your-username/HealthStream-Inference-Engine.git]]
 
 # Spin up the environment
 docker-compose up --build
