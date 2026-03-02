@@ -1,9 +1,3 @@
-巴打，明晒！太過 "Senior" 會顯得唔似你親手寫，反而似係搵人代筆。你要嘅係一種 「有 Potential、肯學、而且對 Engineering 有熱誠」 嘅 Junior 感覺。
-
-你想去 Clockwise 或者其他一線 SWE Jobs，佢哋最睇重嘅唔係你識唔識所有 Enterprise Terminology，而係你有冇 "Solid Foundation" 同 "Curiosity"。
-
-我幫你執返個 Junior-Professional 版本：減少啲大道理，增加多啲「實作細節」同「點解我咁做」。
-
 🏥 HealthStream Inference Engine
 📌 Overview
 A Java-based orchestrator that automates Machine Learning inference by managing isolated Python processes.
