@@ -14,7 +14,9 @@ HealthStream is a specialized micro-orchestrator designed to bridge the gap betw
 * **Process Isolation:** Mimics production ML Infra by separating compute from API.
 * **Resource Management:** Fixed thread pool to prevent CPU exhaustion.
 * **Observability:** Prometheus-ready metrics for real-time monitoring.
-🏗️ How it Works (Architecture)
+* 
+
+##  How it Works (Architecture)
 The project is split into two main parts to keep things clean and modular:
 
 1. The Java Orchestrator (Spring Boot)
@@ -44,6 +46,18 @@ graph TD
     API -->|Metrics| Prometheus[(Prometheus / Grafana)]
 
 ```
+##  Technology Stack
+
+| Layer | Technology |
+|------|------------|
+| API Layer | Spring Boot |
+| Orchestration | Java ProcessBuilder |
+| ML Runtime | Python (Scikit-learn) |
+| Containerization | Docker |
+| Testing | Robot Framework |
+| Observability | Prometheus / Grafana |
+
+
 
 Quick Start:
 
@@ -54,7 +68,18 @@ cd healthstream-inference-engine
 # Build and Run with Docker
 docker-compose up --build
 
-🧪 Testing & Reliability
+##  Run with Docker
+
+Build the container image:
+
+```bash
+docker build -t healthstream .
+
+```
+## Run the service:
+docker run -p 8080:8080 healthstream
+
+## Testing & Reliability
 
 Reliability is built into the core via automated integration testing:
 
@@ -63,11 +88,11 @@ Robot Framework: Used for end-to-end API testing to ensure the Java-to-Python br
 Error Mapping: Python STDERR is captured and mapped to custom Java Exceptions, making debugging distributed failures 10x faster.
 Bash
 
-# To run the tests:
+## To run the tests:
 pip install robotframework robotframework-requests
 robot tests/api_integration.robot
 
-🧠 Engineering Journey & Lessons Learned
+##  Engineering Journey & Lessons Learned
 The "Java-Python Gap"
 The biggest hurdle wasn't the ML itself—it was the Data Contract. Initially, stream buffering caused the Java process to "hang" when Python output exceeded the buffer size.
 
@@ -81,7 +106,7 @@ Solution: Integrated JVM Shutdown Hooks and strict Process.destroy() logic to en
 Path Portability
 To solve "it works on my machine" issues, I refactored the logic from absolute paths to Relative Discovery, ensuring the engine remains "Plug and Play" across MacOS, Linux, and Docker environments.
 
-🚧 Future Roadmap
+##  Future Roadmap
 [ ] Integration with Apache Kafka for asynchronous task queuing.
 
 [ ] Support for GPU-accelerated Python workers.
