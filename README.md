@@ -1,10 +1,19 @@
-🏥 HealthStream Inference Engine
-📌 Overview
-A Java-based orchestrator that automates Machine Learning inference by managing isolated Python processes.
-I built this project to solve a real-world problem: how to reliably run heavy Python ML models (like Breast Cancer diagnostics) from a stable Java Spring Boot backend without crashing the main server.
+!# 🏥 HealthStream Inference Engine
+> A High-Performance Java Orchestrator for Isolated Python ML Workers.
 
-Instead of just calling a script, I implemented a process-management approach inspired by how big systems handle isolated tasks. It's built to be portable, easy to test, and scalable.
+![Java](https://img.shields.io/badge/Java-ED8B00?style=for-the-badge&logo=java&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-6DB33F?style=for-the-badge&logo=spring-boot&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
+HealthStream is a specialized micro-orchestrator designed to bridge the gap between **Java-based Backend Systems** and **Python-based ML Models**. It focuses on **Process Isolation**, **Resource Efficiency**, and **Production-Grade Observability**.
+
+---
+
+## 🌟 Key Engineering Highlights
+* **Process Isolation:** Mimics production ML Infra by separating compute from API.
+* **Resource Management:** Fixed thread pool to prevent CPU exhaustion.
+* **Observability:** Prometheus-ready metrics for real-time monitoring.
 🏗️ How it Works (Architecture)
 The project is split into two main parts to keep things clean and modular:
 
@@ -20,44 +29,61 @@ Dynamic Pathing: No hardcoded paths! The system automatically locates the Python
 
 CLI-Driven: Communicates via a clean CLI contract (--task, --input), returning structured JSON that Java can easily parse.
 
-🚀 Getting Started
-I've Dockerized the whole setup so anyone can run it without worrying about "it works on my machine."
+## 🏗️ System Architecture
+
+The engine utilizes a "Manager-Worker" pattern to ensure high availability and clean data contracts.
+
+```mermaid
+graph TD
+    User([User Request]) --> API[Spring Boot API]
+    API -->|Task Queue| Dispatcher{Fixed Thread Pool}
+    Dispatcher -->|Spawn ProcessBuilder| W1[Python Worker: Breast Cancer]
+    Dispatcher -->|Spawn ProcessBuilder| W2[Python Worker: Behavioral]
+    W1 -->|STDOUT / JSON| API
+    W2 -->|STDOUT / JSON| API
+    API -->|Metrics| Prometheus[(Prometheus / Grafana)]
+
+```
 
 Quick Start:
 
-Bash
-git clone https://github.com/kkauy/HealthStream-Inference-Engine.git
+# Clone the repository
+git clone [https://github.com/kkauy/HealthStream-Inference-Engine.git](https://github.com/kkauy/HealthStream-Inference-Engine.git)
 cd healthstream-inference-engine
+
+# Build and Run with Docker
 docker-compose up --build
+
 🧪 Testing & Reliability
-I didn't want to just "hope" it works, so I added an integration layer:
 
-Robot Framework: I used this for automated API testing because it’s human-readable. It checks if the Java-to-Python bridge is actually returning the right diagnostic JSON.
+Reliability is built into the core via automated integration testing:
 
-Error Handling: Captured STDERR from Python and mapped it to Java exceptions to make debugging 10x easier during development.
+Robot Framework: Used for end-to-end API testing to ensure the Java-to-Python bridge returns valid diagnostic JSON.
 
+Error Mapping: Python STDERR is captured and mapped to custom Java Exceptions, making debugging distributed failures 10x faster.
 Bash
+
 # To run the tests:
 pip install robotframework robotframework-requests
 robot tests/api_integration.robot
 
-🧠 Why I Built This (My Journey)
-Finding the Bridge Between Data Science and Engineering
-This project started from my personal interest in Clinical Data Analytics. I had these raw Python models for Breast Cancer diagnostics, but I realized that in the real world, a model is only useful if it’s part of a stable, accessible service.
+🧠 Engineering Journey & Lessons Learned
+The "Java-Python Gap"
+The biggest hurdle wasn't the ML itself—it was the Data Contract. Initially, stream buffering caused the Java process to "hang" when Python output exceeded the buffer size.
 
-The Real-World Challenge: "The Java-Python Gap"
-The biggest hurdle wasn't the ML itself—it was the Data Contract.
+Solution: Implemented a dedicated Asynchronous Stream Gobbler thread to consume STDOUT and STDERR concurrently, preventing deadlock.
 
-The Struggle: Initially, I had issues with Python scripts crashing or Java failing to read the output because of pathing and stream buffering.
+Handling "Zombie" Processes
+Early versions left orphaned Python processes if the JVM crashed.
 
-The Learning: I had to dive deep into ProcessBuilder, learning how to handle STDOUT and STDERR properly so that Java doesn't "hang" while waiting for Python. It taught me a lot about Resource Management and why process isolation is so important in a Spring environment.
+Solution: Integrated JVM Shutdown Hooks and strict Process.destroy() logic to ensure 100% resource cleanup.
 
-The Goal: "Simple but Robust"
-I wanted to build something that feels like a "Mini-Orchestrator". While big companies use complex EKS setups, I wanted to see if I could achieve that same level of Reliability and Isolation on a smaller scale. My goal was to create a system that a small team could easily maintain, but is "production-ready" enough to handle real diagnostic data safely.
+Path Portability
+To solve "it works on my machine" issues, I refactored the logic from absolute paths to Relative Discovery, ensuring the engine remains "Plug and Play" across MacOS, Linux, and Docker environments.
 
-🚧 Challenges & Lessons Learned
-The Zombie Process Issue: In early versions, if the Python script crashed, the Java process would stay "alive" in the background. I had to learn how to implement proper Process Destruction and timeout handling to keep the system clean.
+🚧 Future Roadmap
+[ ] Integration with Apache Kafka for asynchronous task queuing.
 
-Stream Buffering: I realized that if Python prints too much data, the ProcessBuilder buffer fills up and the whole app freezes. This led me to implement a dedicated Thread to consume the output stream, which was a huge "Aha!" moment for me regarding asynchronous I/O.
+[ ] Support for GPU-accelerated Python workers.
 
-Path Portability: Moving between my local Mac and a Docker container broke the absolute paths. I refactored the logic to use Relative Discovery, making the entire engine "Plug and Play."
+[ ] Dynamic Worker Scaling based on request pressure.
