@@ -1,73 +1,66 @@
 package com.healthstream.orchestrator.service;
 
+import com.healthstream.orchestrator.util.StreamGobbler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.io.File;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Collections;
 
-/**
- * Service to orchestrate ML inference tasks by invoking Python workers.
- * Implements process isolation and resource concurrency control.
- */
 @Service
 public class JobOrchestrator {
 
-    // Manual logger declaration to bypass Lombok annotation issues
     private static final Logger log = LoggerFactory.getLogger(JobOrchestrator.class);
 
-    // Bounding the thread pool to 4 to prevent CPU/Memory exhaustion from ML tasks
-    private final ExecutorService executor = Executors.newFixedThreadPool(4);
-
-
-    /**
-     * Executes the Python ML worker and captures its output.
-     * Uses dynamic path discovery to find the 'inference-workers' directory
-     * relative to the Java application's location.
-     */
     public String runInference(String patientId) {
-        StringBuilder output = new StringBuilder();
+        // Use a thread-safe list to collect output, as it will be populated by a separate asynchronous thread
+        List<String> results = Collections.synchronizedList(new ArrayList<>());
+
         try {
-            // 1. Get the ROOT directory (HealthStream-Inference-Engine)
-            String rootPath = System.getProperty("user.dir");
-            File rootDir = new File(rootPath);
+            // 1. Resolve the directory where the Python scripts are located
+            String currentDir = System.getProperty("user.dir");
+            File workerDir = new File(currentDir, "inference-workers");
 
-            // 2. Locate the worker folder directly inside the root
-            File workerDir = new File(rootDir, "inference-workers");
-
-            // 3. Command setup
+            // 2. Configure the ProcessBuilder to run the Python inference script
             ProcessBuilder pb = new ProcessBuilder(
-                    "python3",
-                    "inference_worker.py",
+                    "python3", "inference_worker.py",
                     "--task", "breast_cancer",
                     "--input", patientId
             );
 
+            // Set the working directory for the Python process
             pb.directory(workerDir);
+
+            // Merge the error stream into the standard output stream to capture all logs in one place
             pb.redirectErrorStream(true);
 
-            log.info("Executing Python from: " + workerDir.getAbsolutePath());
-
+            log.info("Starting Python Inference for patient: {}", patientId);
             Process process = pb.start();
 
-            // 4. Read output
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    output.append(line);
-                }
+            // 3. Start the StreamGobbler on a separate thread.
+            // This is CRITICAL to prevent OS pipe deadlocks by continuously consuming the Python process's output.
+            StreamGobbler gobbler = new StreamGobbler(process.getInputStream(), results::add);
+            Thread gobblerThread = new Thread(gobbler);
+            gobblerThread.start();
+
+            // 4. Wait for the Python process to finish execution
+            int exitCode = process.waitFor();
+
+            // Wait up to 2000ms (2 seconds) for the gobbler thread to finish processing the last bits of output
+            gobblerThread.join(2000);
+
+            // 5. Return the result or format a JSON error message based on the exit code
+            if (exitCode == 0) {
+                return String.join("\n", results);
+            } else {
+                return "{\"error\": \"Process failed with exit code " + exitCode + "\"}";
             }
 
-            int exitCode = process.waitFor();
-            return (exitCode == 0) ? output.toString() : "{\"error\": \"Exit code " + exitCode + "\"}";
-
         } catch (Exception e) {
+            log.error("Inference failed", e);
             return "{\"error\": \"" + e.getMessage() + "\"}";
         }
     }
-
 }
