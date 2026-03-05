@@ -8,6 +8,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Collections;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class JobOrchestrator {
@@ -17,6 +18,8 @@ public class JobOrchestrator {
     public String runInference(String patientId) {
         // Use a thread-safe list to collect output, as it will be populated by a separate asynchronous thread
         List<String> results = Collections.synchronizedList(new ArrayList<>());
+        Process process = null;
+        Thread gobblerThread = null;
 
         try {
             // 1. Resolve the directory where the Python scripts are located
@@ -37,19 +40,34 @@ public class JobOrchestrator {
             pb.redirectErrorStream(true);
 
             log.info("Starting Python Inference for patient: {}", patientId);
-            Process process = pb.start();
+            process = pb.start();
 
             // 3. Start the StreamGobbler on a separate thread.
             // This is CRITICAL to prevent OS pipe deadlocks by continuously consuming the Python process's output.
             StreamGobbler gobbler = new StreamGobbler(process.getInputStream(), results::add);
-            Thread gobblerThread = new Thread(gobbler);
+            gobblerThread = new Thread(gobbler);
             gobblerThread.start();
 
             // 4. Wait for the Python process to finish execution
-            int exitCode = process.waitFor();
+            boolean finished = process.waitFor(30, TimeUnit.SECONDS);
+
+            if (!finished) {
+                log.warn("Inference timeout for patientId={}. Killing python process ... ", patientId);
+
+                process.destroy();
+                if (!process.waitFor(2, TimeUnit.SECONDS)) {
+                    process.destroyForcibly();
+                }
+
+                return "{\"error\":\"timeout\",\"message\":\"Python worker exceeded 30s\"}";
+            }
+
+            int exitCode = process.exitValue();
 
             // Wait up to 2000ms (2 seconds) for the gobbler thread to finish processing the last bits of output
-            gobblerThread.join(2000);
+            if (gobblerThread != null) {
+                gobblerThread.join(2000);
+            }
 
             // 5. Return the result or format a JSON error message based on the exit code
             if (exitCode == 0) {
@@ -57,10 +75,18 @@ public class JobOrchestrator {
             } else {
                 return "{\"error\": \"Process failed with exit code " + exitCode + "\"}";
             }
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            return "{\"error\":\"interrupted\",\"message\":\"Orchestrator interrupted\"}";
 
         } catch (Exception e) {
-            log.error("Inference failed", e);
-            return "{\"error\": \"" + e.getMessage() + "\"}";
+            log.error("Inference failed for patientId={}", patientId, e);
+            return "{\"error\":\"exception\",\"message\":\"" + e.getMessage() + "\"}";
+
+        } finally {
+            if (process != null && process. isAlive()) {
+                process.destroyForcibly();
+            }
         }
     }
 }
