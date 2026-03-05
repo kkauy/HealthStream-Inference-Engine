@@ -79,6 +79,19 @@ docker build -t healthstream .
 ## Run the service:
 docker run -p 8080:8080 healthstream
 
+## The API will be available at:
+http://localhost:8080
+
+## Test the API
+
+Trigger an inference job:
+
+```bash
+curl -sS -X POST http://localhost:8080/api/v1/jobs/inference/123
+
+```
+
+
 ## Testing & Reliability
 
 Reliability is built into the core via automated integration testing:
