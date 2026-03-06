@@ -84,7 +84,7 @@ public class JobOrchestrator {
             return "{\"error\":\"exception\",\"message\":\"" + e.getMessage() + "\"}";
 
         } finally {
-            if (process != null && process. isAlive()) {
+            if (process != null && process.isAlive()) {
                 process.destroyForcibly();
             }
         }

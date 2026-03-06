@@ -35,26 +35,54 @@ CLI-Driven: Communicates via a clean CLI contract (--task, --input), returning s
 
 The engine utilizes a "Manager-Worker" pattern to ensure high availability and clean data contracts.
 
-```mermaid
-graph TD
-    User([User Request]) --> API[Spring Boot API]
-    API -->|Task Queue| Dispatcher{Fixed Thread Pool}
-    Dispatcher -->|Spawn ProcessBuilder| W1[Python Worker: Breast Cancer]
-    Dispatcher -->|Spawn ProcessBuilder| W2[Python Worker: Behavioral]
-    W1 -->|STDOUT / JSON| API
-    W2 -->|STDOUT / JSON| API
-    API -->|Metrics| Prometheus[(Prometheus / Grafana)]
+The Java orchestrator supervises Python workers with timeout control
+and forced termination to prevent hung inference processes.
 
+```mermaid
+
+graph TD
+
+User([User Request]) --> API[Spring Boot API]
+
+API -->|Submit Job| Dispatcher{Fixed Thread Pool}
+
+Dispatcher -->|Invoke Orchestrator| Orchestrator[Java JobOrchestrator]
+
+Orchestrator -->|Spawn ProcessBuilder| Relay[C++ Native Relay]
+
+Relay -->|Validate JSON Request| Worker1[Python Worker: Breast Cancer]
+Relay -->|Validate JSON Request| Worker2[Python Worker: Behavioral]
+
+Worker1 -->|STDOUT / JSON Result| Orchestrator
+Worker2 -->|STDOUT / JSON Result| Orchestrator
+
+Orchestrator --> API
+
+API -->|Metrics| Prometheus[(Prometheus / Grafana)]
 ```
+### Native Validation Layer (C++)
+
+A lightweight C++ relay sits between the Java orchestrator and the Python worker.
+
+Responsibilities:
+
+- Validate incoming inference requests
+- Ensure feature vector integrity
+- Return structured JSON errors
+- Demonstrate Linux-native C++ integration
+
+The relay communicates with the Java orchestrator through **stdin/stdout messaging**.
+
 ##  Technology Stack
 
 | Layer | Technology |
 |------|------------|
 | API Layer | Spring Boot |
 | Orchestration | Java ProcessBuilder |
+| Native Validation | C++ |
 | ML Runtime | Python (Scikit-learn) |
+| Build System | CMake |
 | Containerization | Docker |
-| Testing | Robot Framework |
 | Observability | Prometheus / Grafana |
 
 

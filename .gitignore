@@ -1,5 +1,29 @@
+# Java
 bin/
 *.class
+out/
+target/
+
+# IntelliJ
 .idea/
 *.iml
-out/
+
+# Python
+__pycache__/
+*.pyc
+
+# C++ build artifacts
+native-replay-cpp/build/
+native-replay-cpp/relay
+
+*.o
+*.out
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+
+# macOS
+.DS_Store
