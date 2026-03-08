@@ -60,6 +60,13 @@ Orchestrator --> API
 
 API -->|Metrics| Prometheus[(Prometheus / Grafana)]
 ```
+## Current Status
+- Spring Boot API accepts structured inference requests (`id`, `task`, `features`)
+- A native C++ relay is now integrated into the orchestration flow
+- Invalid requests are rejected at the relay validation boundary before Python execution
+- The next step is aligning the Python worker contract to consume structured JSON via stdin
+
+
 ### Native Validation Layer (C++)
 
 A lightweight C++ relay sits between the Java orchestrator and the Python worker.

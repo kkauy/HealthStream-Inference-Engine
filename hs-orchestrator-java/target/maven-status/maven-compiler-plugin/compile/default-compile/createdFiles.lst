@@ -1,4 +1,12 @@
+com/healthstream/orchestrator/controller/JobController.class
+com/healthstream/orchestrator/util/JsonUtil.class
+com/healthstream/orchestrator/model/WorkerError.class
+com/healthstream/orchestrator/config/OrchestratorConfig.class
+com/healthstream/orchestrator/model/InferenceRequest.class
+com/healthstream/orchestrator/model/InferenceResponse.class
+com/healthstream/orchestrator/service/WorkerProcessManager.class
 com/healthstream/orchestrator/OrchestratorApplication.class
 com/healthstream/orchestrator/service/JobOrchestrator.class
-com/healthstream/orchestrator/controller/JobController.class
 com/healthstream/orchestrator/util/StreamGobbler.class
+com/healthstream/orchestrator/exception/WorkerException.class
+com/healthstream/orchestrator/exception/WorkerTimeoutException.class
