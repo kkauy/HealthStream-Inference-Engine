@@ -2,6 +2,7 @@ package com.healthstream.orchestrator.model;
 
 public class RelayResponse {
     private boolean ok;
+    private String id;
     private String message;
     private String error;
 
@@ -9,6 +10,10 @@ public class RelayResponse {
 
     public boolean isOk() {
         return ok;
+    }
+
+    public String getId() {
+        return id;
     }
 
     public String getMessage() {
@@ -21,6 +26,10 @@ public class RelayResponse {
 
     public void setOk(boolean ok) {
         this.ok = ok;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 
     public void setMessage(String message) {

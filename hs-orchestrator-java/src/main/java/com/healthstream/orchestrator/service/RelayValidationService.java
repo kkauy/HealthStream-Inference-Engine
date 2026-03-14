@@ -89,8 +89,8 @@ public class RelayValidationService {
         String currentDir = System.getProperty("user.dir");
 
         File[] candidates = new File[] {
-                new File(currentDir, "native-replay-cpp/build/relay"),
-                new File(currentDir, "../native-replay-cpp/build/relay")
+                new File(currentDir, "native-relay-cpp/build/relay"),
+                new File(currentDir, "../native-relay-cpp/build/relay")
         };
 
         for (File candidate : candidates) {

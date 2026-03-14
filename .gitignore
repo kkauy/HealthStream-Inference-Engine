@@ -13,8 +13,8 @@ __pycache__/
 *.pyc
 
 # C++ build artifacts
-native-replay-cpp/build/
-native-replay-cpp/relay
+native-relay-cpp/build/
+native-relay-cpp/relay
 
 *.o
 *.out
