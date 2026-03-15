@@ -25,14 +25,14 @@ This mirrors practical production concerns such as fault isolation, observabilit
 
 ---
 
-## 🌟 Key Engineering Highlights
+##  Key Engineering Highlights
 * **Process Isolation:** Mimics production ML infra by separating compute from the API layer.
 * **Resource Management:** Fixed thread pool to prevent CPU exhaustion.
 * **Redis Caching:** Repeated identical inference requests can return directly from cache, avoiding unnecessary relay validation and Python worker startup.
 * **Observability:** Prometheus-ready metrics for real-time monitoring.
 
----
 
+---
 ## How it Works (Architecture)
 
 The project is split into multiple stages to keep inference execution safe, modular, and efficient:
@@ -59,13 +59,13 @@ The project is split into multiple stages to keep inference execution safe, modu
 4. **The Cache Layer (Redis)**  
    Successful inference responses are cached for 30 minutes. Repeated identical requests return directly from Redis instead of re-running validation and worker execution.
 
----
 
+---
 ## 🏗️ System Architecture
 
-The engine utilizes a "Manager-Worker" pattern to ensure high availability and clean data contracts.
+The engine utilizes a staged "Manager-Worker" pattern to ensure high availability, clean data contracts, and efficient repeated inference handling.
 
-The Java orchestrator supervises Python workers with timeout control
+The Java orchestrator supervises Redis cache checks, native validation, and Python worker execution with timeout control
 and forced termination to prevent hung inference processes.
 
 ```mermaid
@@ -89,39 +89,20 @@ Orchestrator --> API
 
 API -->|Metrics| Prometheus[(Prometheus / Grafana)]
 
-```mermaid
-
-graph TD
-
-User([User Request]) --> API[Spring Boot API]
-
-API -->|Submit Job| Dispatcher{Fixed Thread Pool}
-
-Dispatcher -->|Invoke Orchestrator| Orchestrator[Java JobOrchestrator]
-
-Orchestrator -->|Spawn ProcessBuilder| Relay[C++ Native Relay]
-
-Relay -->|Validate JSON Request| Worker1[Python Worker: Breast Cancer]
-Relay -->|Validate JSON Request| Worker2[Python Worker: Behavioral]
-
-Worker1 -->|STDOUT / JSON Result| Orchestrator
-Worker2 -->|STDOUT / JSON Result| Orchestrator
-
-Orchestrator --> API
-
-API -->|Metrics| Prometheus[(Prometheus / Grafana)]
 ```
+
 ## Current Status
 - Spring Boot API is running locally and accepts structured inference requests
 - Native C++ relay validation is integrated and working
 - Python worker execution is connected end-to-end
-- Redis caching is integrated before relay validation and worker execution
+- Redis caching is integrated before relay validation and Python worker execution
 - Repeated identical inference requests are now served from cache
 - Cache behavior has been validated locally with:
-   - `CACHE MISS`
-   - `CACHE STORED`
-   - `CACHE HIT`
+  - `CACHE MISS`
+  - `CACHE STORED`
+  - `CACHE HIT`
 - Local validation confirms that repeated identical requests bypass relay validation and Python worker execution through Redis cache hits
+
 
 
 ## Redis Cache Validation
@@ -139,6 +120,8 @@ The cache layer was validated locally with repeated identical inference requests
 - **Store rule**: only successful inference responses are cached
 
 This optimization reduces repeated relay validation and Python worker startup overhead for duplicate inference requests.
+
+
 
 ### Native Validation Layer (C++)
 
@@ -187,10 +170,26 @@ mvn spring-boot:run
 ## Health Check
 curl http://localhost:8080/actuator/health
 
+## Test the API
+
+curl -X POST http://localhost:8080/api/v1/jobs/inference \
+-H "Content-Type: application/json" \
+-d '{"id":"123","task":"breast_cancer","features":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]}'
+
+
+---
 
 ##  Run with Docker
 
+```md
+## Run with Docker
+
 ## Containerization (In Progress)
+
+Build the container image:
+
+```bash
+docker build -t healthstream .
 
 
 ```bash
@@ -198,7 +197,8 @@ docker build -t healthstream .
 
 ```
 ## Run the service:
-docker run -p 8080:8080 healthstream
+http://localhost:8080
+
 
 ## The API will be available at:
 http://localhost:8080
@@ -212,19 +212,24 @@ curl -sS -X POST http://localhost:8080/api/v1/jobs/inference/123
 
 ```
 
-
 ## Testing & Reliability
 
-Reliability is built into the core via automated integration testing:
+Reliability is built into the core via automated integration testing and safe multi-process coordination:
 
-Robot Framework: Used for end-to-end API testing to ensure the Java-to-Python bridge returns valid diagnostic JSON.
-
-Error Mapping: Python STDERR is captured and mapped to custom Java Exceptions, making debugging distributed failures 10x faster.
-Bash
+- **Robot Framework:** Used for end-to-end API testing to ensure the Java-to-Python bridge returns valid diagnostic JSON.
+- **Asynchronous Stream Handling:** Prevents deadlock when Python output exceeds process buffers.
+- **Error Mapping:** Python worker output and failure paths are surfaced through the Java orchestration layer to make debugging distributed failures easier.
+- **Timeout Control:** The orchestrator enforces worker execution limits to prevent hung inference processes.
+- **Cache Validation:** Repeated identical inference requests have been validated locally to confirm `CACHE MISS`, `CACHE STORED`, and `CACHE HIT` behavior.
 
 ## To run the tests:
+```bash
 pip install robotframework robotframework-requests
 robot tests/api_integration.robot
+
+```
+
+---
 
 ##  Engineering Journey & Lessons Learned
 The "Java-Python Gap"
@@ -248,3 +253,4 @@ To solve "it works on my machine" issues, I refactored the logic from absolute p
 - [ ] Integration with Apache Kafka for asynchronous task queuing
 - [ ] Support for GPU-accelerated Python workers
 - [ ] Dynamic worker scaling based on request pressure
+
